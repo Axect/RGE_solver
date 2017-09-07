@@ -2,32 +2,8 @@
 ver = "0.1.0";
 author = "Axect";
 page = "https://github.com/Axect/RGE_Solver";
-
 # Function Session
-function CheckFolder(folder::String)
-    Dir = readdir()
-    if folder in Dir
-        println("$(folder) exists.")
-    else
-        println("Make folder")
-        mkdir("$(folder)")
-        CheckFolder("$(folder)")
-    end
-end
-
-function Input()
-    Choose = split(readline(STDIN))
-    if length(Choose) > 5
-        error("Over arguments")
-    end
-    mt = parse(Float64, Choose[1])
-    mt_int = Int(floor(mt))
-    mt_float = Int(round(mt - floor(mt), 2) * 100) # Only for 1E-02
-    xi = parse(Int, Choose[2])
-    Choice = Choose[3:end]
-    return mt_int, mt_float, xi, Choice
-end
-
+include("src/Functions.jl")
 
 # --------------------------------------------------------------
 # Script Session
@@ -51,12 +27,13 @@ println("Input parameters: ")
 println("ex) 170.85 50 1 2 3")
 
 mt_int, mt_float, xi, Choice = Input()
+mt = mt_int + round(mt_float/100, 2)
 
 println("Input parameter : $(mt_int).$(mt_float) $(xi)")
 println("Loading...")
 println()
 
-using Plots
+using Plots, DataFrames, LaTeXStrings
 
 println("-------------------------------")
 println("  Check the environment..  ")
@@ -66,20 +43,21 @@ CheckFolder("Data")
 CheckFolder("Fig")
 println()
 println("-------------------------------")
-println("  Build...  ")
+println("  Import...  ")
 println("-------------------------------")
 
-run(`go build src/cmd/rge.go`)
+include("src/pbh.jl");
 
 println()
-println("Build Complete!")
+println("Import Complete!")
 println()
 println("-------------------------------")
 println("  Running...  ")
 println("-------------------------------")
 println()
 
-run(`./rge`)
+Data = ExtractGauge(mt, Float64(xi));
+println("Running Complete!")
 
 println()
 println("-------------------------------")
@@ -87,17 +65,37 @@ println("  Plotting...  ")
 println("-------------------------------")
 println()
 
-gr(size=(1000,600), dpi=300)
-Dat = readcsv("Data/rge.csv");
-value = Dat[:];
-plot(Dat, title="RGE")
-savefig("Fig/rge.svg")
-println("Plot complete!")
-println()
-println("-------------------------------")
-println("  Converting...  ")
-println("-------------------------------")
-println()
+gr(size=(1000, 600), dpi=300)
+t = Data[:t]
 
-run(`inkscape -z Fig/rge.svg -e Fig/rge.png -d 600`)
+if "1" in Choice
+    t = Data[:t]
+    λ = Data[:λ]
+    pl1 = plot(t, λ, title="Lambda", label="lH")
+    savefig(pl1, "Fig/Lambda_$(mt_int)_$(mt_float)_$(xi).svg")
+    run(`inkscape -z Fig/Lambda_$(mt_int)_$(mt_float)_$(xi).svg -e Fig/Lambda_$(mt_int)_$(mt_float)_$(xi).png -d 600`)
+end
+
+if "2" in Choice
+    yt = Data[:yt]
+    g1 = Data[:g1]
+    g2 = Data[:g2]
+    g3 = Data[:g3]
+    pl2 = plot(t, yt, title="Gauge Plots", label="yt")
+    plot!(t, g1, label="g1")
+    plot!(t, g2, label="g2")
+    plot!(t, g3, label="g3")
+    savefig(pl2, "Fig/Gauge_$(mt_int)_$(mt_float)_$(xi).svg")
+    run(`inkscape -z Fig/Gauge_$(mt_int)_$(mt_float)_$(xi).svg -e Fig/Gauge_$(mt_int)_$(mt_float)_$(xi).png -d 600`)
+end
+
+if "3" in Choice
+    G = Data[:G]
+    pl3 = plot(t, G, title="Gauge Plots", label="G(t)")
+    savefig(pl3, "Fig/G_$(mt_int)_$(mt_float)_$(xi).svg")
+    run(`inkscape -z Fig/G_$(mt_int)_$(mt_float)_$(xi).svg -e Fig/G_$(mt_int)_$(mt_float)_$(xi).png -d 600`)
+end
+
+println("Plot complete!")
+
 println("Convert complete!")
